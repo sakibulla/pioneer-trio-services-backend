@@ -2,9 +2,9 @@
   "compilerOptions": {
     "target": "ES2022",
     "module": "commonjs",
-    "moduleResolution": "node10",
+    "moduleResolution": "bundler",
     "lib": ["ES2022"],
-    "types": ["node"],
+    "types": [],
     "allowJs": true,
     "outDir": "./dist",
     "rootDir": "./src",
@@ -13,9 +13,8 @@
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true,
     "resolveJsonModule": true,
-    "baseUrl": ".",
     "paths": {
-      "@/*": ["src/*"]
+      "@/*": ["./src/*"]
     },
     "esModuleInterop": true,
     "experimentalDecorators": true,
