@@ -91,54 +91,15 @@ export class AuthService {
       throw new UnauthorizedError('Your account has been deactivated. Please contact support.');
     }
 
-    // Check account lockout
-    if (user.lockedUntil && user.lockedUntil > new Date()) {
-      const remainingMinutes = Math.ceil((user.lockedUntil.getTime() - Date.now()) / 60000);
-      throw new UnauthorizedError(
-        `Account locked due to consecutive failed attempts. Please try again in ${remainingMinutes} minutes.`
-      );
+    // Check if user has a password (null for Google-only accounts)
+    if (!user.passwordHash) {
+      throw new UnauthorizedError('This account uses Google Sign-In. Please use the Google button to log in.');
     }
 
     const isValid = await bcrypt.compare(password, user.passwordHash);
 
     if (!isValid) {
-      const attempts = user.failedLoginAttempts + 1;
-      let lockedUntil: Date | null = null;
-
-      if (attempts >= 5) {
-        lockedUntil = new Date(Date.now() + 5 * 60 * 1000); // Lock for 5 mins
-      }
-
-      await prisma.user.update({
-        where: { id: user.id },
-        data: {
-          failedLoginAttempts: attempts,
-          lockedUntil,
-        },
-      });
-
-      await AuditService.log({
-        userId: user.id,
-        action: 'AUTH_LOGIN_FAILED',
-        resource: 'User',
-        resourceId: user.id,
-        details: { attempts },
-        ipAddress: clientIp,
-        userAgent,
-      });
-
       throw new UnauthorizedError('Invalid email or password');
-    }
-
-    // Reset failed attempts on successful login
-    if (user.failedLoginAttempts > 0 || user.lockedUntil) {
-      await prisma.user.update({
-        where: { id: user.id },
-        data: {
-          failedLoginAttempts: 0,
-          lockedUntil: null,
-        },
-      });
     }
 
     const userPayload: AuthUserPayload = {
@@ -249,5 +210,105 @@ export class AuthService {
       type: 'PASSWORD_RESET',
       payload: { to: user.email, resetUrl },
     });
+  }
+
+  /**
+   * Google OAuth login — verify ID token and upsert user
+   */
+  public static async googleLogin(idToken: string, clientIp?: string) {
+    if (!env.GOOGLE_CLIENT_ID) {
+      throw new UnauthorizedError('Google OAuth is not configured. Please contact support.');
+    }
+
+    const { OAuth2Client } = require('google-auth-library');
+
+    const client = new OAuth2Client(env.GOOGLE_CLIENT_ID);
+
+    // Verify the ID token
+    let ticket;
+    try {
+      ticket = await client.verifyIdToken({
+        idToken,
+        audience: env.GOOGLE_CLIENT_ID,
+      });
+    } catch (err) {
+      throw new UnauthorizedError('Invalid or expired Google ID token');
+    }
+
+    const payload = ticket.getPayload();
+    if (!payload || !payload.email || !payload.sub) {
+      throw new UnauthorizedError('Google token missing required fields');
+    }
+
+    const { email, name, sub, given_name, family_name } = payload;
+    const firstName = given_name || name?.split(' ')[0] || 'User';
+    const lastName = family_name || name?.split(' ').slice(1).join(' ') || '';
+
+    // Upsert user: find by googleId first, then by email
+    let user = await prisma.user.findUnique({
+      where: { googleId: sub },
+    });
+
+    if (!user) {
+      // Check if email already exists (from password registration)
+      const existingByEmail = await prisma.user.findUnique({
+        where: { email: email.toLowerCase() },
+      });
+
+      if (existingByEmail) {
+        // Link Google ID to existing email-based account
+        user = await prisma.user.update({
+          where: { id: existingByEmail.id },
+          data: { googleId: sub },
+        });
+      } else {
+        // Create new user from Google profile
+        user = await prisma.user.create({
+          data: {
+            email: email.toLowerCase(),
+            passwordHash: null,
+            googleId: sub,
+            firstName,
+            lastName,
+            role: UserRole.CLIENT,
+          },
+        });
+      }
+    }
+
+    if (!user.active) {
+      throw new UnauthorizedError('Your account has been deactivated. Please contact support.');
+    }
+
+    const userPayload: AuthUserPayload = {
+      userId: user.id,
+      email: user.email,
+      role: user.role,
+      firstName: user.firstName,
+      lastName: user.lastName,
+    };
+
+    const accessToken = generateAccessToken(userPayload);
+    const refreshToken = await generateRefreshToken(userPayload);
+
+    await AuditService.log({
+      userId: user.id,
+      action: 'AUTH_GOOGLE_LOGIN',
+      resource: 'User',
+      resourceId: user.id,
+      ipAddress: clientIp,
+    });
+
+    return {
+      user: {
+        id: user.id,
+        email: user.email,
+        role: user.role,
+        firstName: user.firstName,
+        lastName: user.lastName,
+      },
+      accessToken,
+      refreshToken,
+    };
   }
 }
