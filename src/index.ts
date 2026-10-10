@@ -17,10 +17,8 @@ const bootstrap = async () => {
     // 2. Connect to Redis
     await connectRedis();
 
-    // 3. Initialize S3 / MinIO storage buckets (if enabled)
-    if (env.STORAGE_PROVIDER !== 'disabled') {
-      await initializeS3Buckets();
-    }
+    // 3. Initialize S3 / MinIO storage buckets
+    await initializeS3Buckets();
 
     // 4. Start Bull Queue Background Workers
     startWorkers();
