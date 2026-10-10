@@ -55,6 +55,10 @@ const envSchema = z.object({
   SENTRY_DSN: z.string().optional(),
   LOG_LEVEL: z.enum(['error', 'warn', 'info', 'http', 'verbose', 'debug', 'silly']).default('info'),
 
+  // Google OAuth
+  GOOGLE_CLIENT_ID: z.string().optional(),
+  GOOGLE_CLIENT_SECRET: z.string().optional(),
+
   // Rate Limiting
   RATE_LIMIT_GLOBAL_MAX: z.coerce.number().default(100),
   RATE_LIMIT_GLOBAL_WINDOW_MS: z.coerce.number().default(60000),

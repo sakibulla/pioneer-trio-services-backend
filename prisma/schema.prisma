@@ -26,7 +26,8 @@ enum UserRole {
 model User {
   id                   String      @id @default(uuid())
   email                String      @unique
-  passwordHash         String      @map("password_hash")
+  passwordHash         String?     @map("password_hash")
+  googleId             String?     @unique @map("google_id")
   role                 UserRole    @default(CLIENT)
   firstName            String      @map("first_name")
   lastName             String      @map("last_name")
@@ -45,6 +46,7 @@ model User {
   matrimonialProfiles  MatrimonialProfile[]
   auditLogs            AuditLog[]
 
+  @@index([googleId])
   @@map("users")
 }
 

@@ -37,4 +37,10 @@ export class AuthController {
   public static getMe = asyncHandler(async (req: Request, res: Response) => {
     ApiResponse.success(res, req.user, 'Current user profile');
   });
+
+  public static googleLogin = asyncHandler(async (req: Request, res: Response) => {
+    const { idToken } = req.body;
+    const result = await AuthService.googleLogin(idToken, req.ip);
+    ApiResponse.success(res, result, 'Google login successful');
+  });
 }

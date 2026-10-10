@@ -47,3 +47,7 @@ export const changePasswordSchema = z.object({
     .regex(/[a-z]/, 'Password must contain at least one lowercase letter')
     .regex(/[0-9]/, 'Password must contain at least one number'),
 });
+
+export const googleTokenSchema = z.object({
+  idToken: z.string().min(1, 'ID token is required'),
+});
