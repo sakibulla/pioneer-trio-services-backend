@@ -34,7 +34,6 @@ export const generateRefreshToken = async (user: AuthUserPayload): Promise<strin
     role: user.role,
     firstName: user.firstName,
     lastName: user.lastName,
-    jti,
   };
 
   const options: SignOptions = {
