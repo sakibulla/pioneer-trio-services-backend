@@ -31,7 +31,7 @@ const envSchema = z.object({
   ENCRYPTION_MASTER_KEY: z.string().min(32, 'ENCRYPTION_MASTER_KEY must be a 32-byte (64 hex char) key or string').default('0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef'),
 
   // Object Storage
-  STORAGE_PROVIDER: z.enum(['minio', 's3', 'local']).default('minio'),
+  STORAGE_PROVIDER: z.enum(['minio', 's3', 'local', 'disabled']).default('minio'),
   S3_ENDPOINT: z.string().optional(),
   S3_REGION: z.string().default('us-east-1'),
   S3_ACCESS_KEY_ID: z.string().default('minioadmin'),
