@@ -86,8 +86,7 @@ databases:
     plan: free
     region: ohio
     ipAllowList: []
-
-# Redis Cache (Free tier)
+  # Redis Cache (Free tier)
   - name: pioneer-redis
     plan: free
     type: pserver
