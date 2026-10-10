@@ -3,13 +3,12 @@
     "target": "ES2022",
     "module": "commonjs",
     "lib": ["ES2022"],
-    "typeRoots": ["./node_modules/@types", "./src/types"],
-    "types": ["node"],
     "allowJs": true,
     "outDir": "./dist",
     "rootDir": "./src",
     "strict": false,
-    "noImplicitAny": false,
+    "noImplicitAny": true,
+    "noImplicitAnyIndexSignatures": false,
     "strictNullChecks": false,
     "strictFunctionTypes": false,
     "strictBindCallApply": false,
@@ -31,6 +30,6 @@
     "forceConsistentCasingInFileNames": true,
     "resolveJsonModule": true
   },
-  "include": ["src/**/*", "src/types/**/*.d.ts"],
+  "include": ["src/**/*"],
   "exclude": ["node_modules", "dist", "tests/**/*"]
 }
