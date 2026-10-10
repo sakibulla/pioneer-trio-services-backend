@@ -1,0 +1,73 @@
+name: Pioneer Trio Backend CI
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  test:
+    name: Lint, Build & Test
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:15-alpine
+        env:
+          POSTGRES_DB: pioneer_test
+          POSTGRES_USER: pioneer_test
+          POSTGRES_PASSWORD: test_password
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js 20 LTS
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+          cache-dependency-path: pioneer-backend/package-lock.json
+
+      - name: Install Dependencies
+        working-directory: pioneer-backend
+        run: npm ci
+
+      - name: Run ESLint
+        working-directory: pioneer-backend
+        run: npm run lint
+
+      - name: Generate Prisma Client
+        working-directory: pioneer-backend
+        run: npx prisma generate
+
+      - name: Run TypeScript Typecheck
+        working-directory: pioneer-backend
+        run: npx tsc --noEmit
+
+      - name: Run Test Suite
+        working-directory: pioneer-backend
+        env:
+          DATABASE_URL: postgresql://pioneer_test:test_password@localhost:5432/pioneer_test?schema=public
+          REDIS_URL: redis://localhost:6379
+          JWT_SECRET: test-jwt-secret-for-ci-testing-purposes
+          ENCRYPTION_MASTER_KEY: 0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef
+        run: npm test

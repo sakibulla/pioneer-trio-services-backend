@@ -1,0 +1,685 @@
+// ==============================================================================
+// Pioneer Trio Services - Complete Prisma Database Schema
+// Section 7.2 (Immigration Consultancy) & Section 8.3 (Marriage Consultancy)
+// ==============================================================================
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ------------------------------------------------------------------------------
+// User & Authentication Management
+// ------------------------------------------------------------------------------
+
+enum UserRole {
+  ADMIN
+  COORDINATOR
+  MATCHMAKER
+  CLIENT
+}
+
+model User {
+  id                   String      @id @default(uuid())
+  email                String      @unique
+  passwordHash         String      @map("password_hash")
+  role                 UserRole    @default(CLIENT)
+  firstName            String      @map("first_name")
+  lastName             String      @map("last_name")
+  phone                String?
+  active               Boolean     @default(true)
+  failedLoginAttempts  Int         @default(0) @map("failed_login_attempts")
+  lockedUntil          DateTime?   @map("locked_until")
+  createdAt            DateTime    @default(now()) @map("created_at")
+  updatedAt            DateTime    @updatedAt @map("updated_at")
+
+  // Relations
+  coordinatorCases     ImmigrationCase[]    @relation("CoordinatorCases")
+  qcReviews            QCReview[]           @relation("ReviewerQC")
+  caseNotes            CaseNote[]           @relation("AuthorNotes")
+  matchmakerProfile    Matchmaker?
+  matrimonialProfiles  MatrimonialProfile[]
+  auditLogs            AuditLog[]
+
+  @@map("users")
+}
+
+// ------------------------------------------------------------------------------
+// Immigration Consultancy (Section 7.2)
+// ------------------------------------------------------------------------------
+
+enum Gender {
+  MALE
+  FEMALE
+  OTHER
+}
+
+enum MaritalStatus {
+  SINGLE
+  MARRIED
+  DIVORCED
+  WIDOWED
+}
+
+enum CaseStatus {
+  DRAFT
+  SUBMITTED
+  UNDER_REVIEW
+  DOCUMENTS_PENDING
+  QC_REVIEW
+  APPROVED
+  REFERRED
+  REJECTED
+  CLOSED
+}
+
+enum EmploymentStatus {
+  EMPLOYED
+  SELF_EMPLOYED
+  STUDENT
+  UNEMPLOYED
+  RETIRED
+}
+
+enum QCOutcome {
+  APPROVED
+  REQUIRES_CHANGES
+  REJECTED
+}
+
+enum NoteType {
+  GENERAL
+  INTERNAL
+  CLIENT_COMMUNICATION
+  QC_FEEDBACK
+}
+
+model Client {
+  id                String            @id @default(uuid())
+  fullName          String            @map("full_name")
+  email             String            @unique
+  phone             String
+  dateOfBirth       DateTime          @map("date_of_birth")
+  gender            Gender
+  nationality       String            @default("Bangladeshi")
+  nidNumber         String?           @map("nid_number")
+  passportNumber    String            @map("passport_number")
+  passportExpiry    DateTime          @map("passport_expiry")
+  maritalStatus     MaritalStatus     @map("marital_status")
+  currentAddress    String            @map("current_address")
+  createdAt         DateTime          @default(now()) @map("created_at")
+  updatedAt         DateTime          @updatedAt @map("updated_at")
+
+  // Relations
+  immigrationCases  ImmigrationCase[]
+
+  @@index([email])
+  @@index([passportNumber])
+  @@map("clients")
+}
+
+model ImmigrationCase {
+  id                    String             @id @default(uuid())
+  clientId              String             @map("client_id")
+  coordinatorId         String?            @map("coordinator_id")
+  caseReference         String             @unique @map("case_reference")
+
+  // Section B: Immigration Goal
+  destinationCountry    String             @map("destination_country")
+  applicationType       String             @map("application_type")
+  specificProgram       String?            @map("specific_program")
+  targetApplicationDate DateTime?          @map("target_application_date")
+  priorApplications     Boolean            @default(false) @map("prior_applications")
+  priorRefusals         Boolean            @default(false) @map("prior_refusals")
+  refusalDetails        String?            @map("refusal_details")
+
+  // Workflow Status Tracking
+  status                CaseStatus         @default(DRAFT)
+  stage                 String?            @default("Initial Intake")
+  submittedAt           DateTime?          @map("submitted_at")
+  closedAt              DateTime?          @map("closed_at")
+
+  createdAt             DateTime           @default(now()) @map("created_at")
+  updatedAt             DateTime           @updatedAt @map("updated_at")
+
+  // Relations
+  client                Client             @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  coordinator           User?              @relation("CoordinatorCases", fields: [coordinatorId], references: [id])
+  employmentProfile     EmploymentProfile?
+  financialProfile      FinancialProfile?
+  travelHistory         TravelHistory[]
+  homeCountryTies       HomeCountryTies?
+  documents             CaseDocument[]
+  qcReviews             QCReview[]
+  notes                 CaseNote[]
+
+  @@index([clientId])
+  @@index([coordinatorId])
+  @@index([status])
+  @@index([destinationCountry])
+  @@index([createdAt])
+  @@map("immigration_cases")
+}
+
+model EmploymentProfile {
+  id                String           @id @default(uuid())
+  caseId            String           @unique @map("case_id")
+  employmentStatus  EmploymentStatus @map("employment_status")
+
+  // Employed Fields
+  currentEmployer   String?          @map("current_employer")
+  jobTitle          String?          @map("job_title")
+  employmentSince   DateTime?        @map("employment_since")
+  monthlyIncome     Decimal?         @map("monthly_income") @db.Decimal(12, 2)
+
+  // Self-Employed Fields
+  businessName      String?          @map("business_name")
+  businessType      String?          @map("business_type")
+  businessSince     DateTime?        @map("business_since")
+  annualRevenue     Decimal?         @map("annual_revenue") @db.Decimal(12, 2)
+
+  // Student Fields
+  institution       String?
+  fieldOfStudy      String?          @map("field_of_study")
+  expectedGraduation DateTime?       @map("expected_graduation")
+
+  createdAt         DateTime         @default(now()) @map("created_at")
+  updatedAt         DateTime         @updatedAt @map("updated_at")
+
+  // Relations
+  case              ImmigrationCase  @relation(fields: [caseId], references: [id], onDelete: Cascade)
+
+  @@map("employment_profiles")
+}
+
+model FinancialProfile {
+  id                    String          @id @default(uuid())
+  caseId                String          @unique @map("case_id")
+
+  currentBankBalance    Decimal         @map("current_bank_balance") @db.Decimal(12, 2)
+  hasSponsor            Boolean         @default(false) @map("has_sponsor")
+  sponsorRelationship   String?         @map("sponsor_relationship")
+  sponsorContribution   Decimal?        @map("sponsor_contribution") @db.Decimal(12, 2)
+
+  sourceOfFunds         String          @map("source_of_funds")
+  unusualDeposits       Boolean         @default(false) @map("unusual_deposits")
+  unusualDepositDetails String?         @map("unusual_deposit_details")
+
+  createdAt             DateTime        @default(now()) @map("created_at")
+  updatedAt             DateTime        @updatedAt @map("updated_at")
+
+  // Relations
+  case                  ImmigrationCase @relation(fields: [caseId], references: [id], onDelete: Cascade)
+
+  @@map("financial_profiles")
+}
+
+model TravelHistory {
+  id                String          @id @default(uuid())
+  caseId            String          @map("case_id")
+
+  country           String
+  visitPurpose      String          @map("visit_purpose")
+  visitDate         DateTime        @map("visit_date")
+
+  hadRefusal        Boolean         @default(false) @map("had_refusal")
+  refusalCountry    String?         @map("refusal_country")
+  refusalReason     String?         @map("refusal_reason")
+
+  createdAt         DateTime        @default(now()) @map("created_at")
+
+  // Relations
+  case              ImmigrationCase @relation(fields: [caseId], references: [id], onDelete: Cascade)
+
+  @@index([caseId])
+  @@map("travel_history")
+}
+
+model HomeCountryTies {
+  id                    String          @id @default(uuid())
+  caseId                String          @unique @map("case_id")
+
+  applicationPurpose    String          @map("application_purpose")
+
+  familyInBangladesh    Boolean         @default(true) @map("family_in_bangladesh")
+  familyDetails         String?         @map("family_details")
+
+  ownsProperty          Boolean         @default(false) @map("owns_property")
+  propertyDetails       String?         @map("property_details")
+
+  intentToReturn        String          @map("intent_to_return")
+
+  createdAt             DateTime        @default(now()) @map("created_at")
+  updatedAt             DateTime        @updatedAt @map("updated_at")
+
+  // Relations
+  case                  ImmigrationCase @relation(fields: [caseId], references: [id], onDelete: Cascade)
+
+  @@map("home_country_ties")
+}
+
+model CaseDocument {
+  id                String          @id @default(uuid())
+  caseId            String          @map("case_id")
+
+  documentType      String          @map("document_type")
+  fileName          String          @map("file_name")
+  fileSize          Int             @map("file_size")
+  mimeType          String          @map("mime_type")
+  storageKey        String          @map("storage_key")
+  encrypted         Boolean         @default(true)
+  encryptionIv      String?         @map("encryption_iv")
+
+  verified          Boolean         @default(false)
+  verifiedBy        String?         @map("verified_by")
+  verifiedAt        DateTime?       @map("verified_at")
+
+  uploadedAt        DateTime        @default(now()) @map("uploaded_at")
+
+  // Relations
+  case              ImmigrationCase @relation(fields: [caseId], references: [id], onDelete: Cascade)
+
+  @@index([caseId])
+  @@index([documentType])
+  @@map("case_documents")
+}
+
+model QCReview {
+  id                String          @id @default(uuid())
+  caseId            String          @map("case_id")
+  reviewerId        String          @map("reviewer_id")
+
+  reviewStage       String          @map("review_stage")
+  outcome           QCOutcome
+  findings          String?
+  recommendations   String?
+
+  reviewedAt        DateTime        @default(now()) @map("reviewed_at")
+
+  // Relations
+  case              ImmigrationCase @relation(fields: [caseId], references: [id], onDelete: Cascade)
+  reviewer          User            @relation("ReviewerQC", fields: [reviewerId], references: [id])
+
+  @@index([caseId])
+  @@index([reviewerId])
+  @@map("qc_reviews")
+}
+
+model CaseNote {
+  id                String          @id @default(uuid())
+  caseId            String          @map("case_id")
+  authorId          String          @map("author_id")
+
+  note              String
+  noteType          NoteType        @default(GENERAL) @map("note_type")
+
+  createdAt         DateTime        @default(now()) @map("created_at")
+
+  // Relations
+  case              ImmigrationCase @relation(fields: [caseId], references: [id], onDelete: Cascade)
+  author            User            @relation("AuthorNotes", fields: [authorId], references: [id])
+
+  @@index([caseId])
+  @@index([createdAt])
+  @@map("case_notes")
+}
+
+// ------------------------------------------------------------------------------
+// Marriage Consultancy (Section 8.3)
+// ------------------------------------------------------------------------------
+
+enum ProfileStatus {
+  PENDING_REVIEW
+  INTERVIEW_SCHEDULED
+  ACTIVE
+  PAUSED
+  MATCHED
+  DECLINED
+  INACTIVE
+}
+
+enum FamilyType {
+  NUCLEAR
+  JOINT
+  EXTENDED
+}
+
+enum InterviewMode {
+  VIDEO_CALL
+  PHONE_CALL
+  IN_PERSON
+}
+
+enum MatchStatus {
+  PROPOSED
+  BOTH_INTERESTED
+  INTRODUCED
+  IN_PROGRESS
+  SUCCESSFUL
+  DECLINED
+  CLOSED
+}
+
+enum MatchResponse {
+  INTERESTED
+  NOT_INTERESTED
+  MAYBE
+}
+
+enum DeclineReason {
+  STATUS_MOTIVATED
+  TRAFFICKING_RISK
+  FALSE_INFORMATION
+  DUPLICATE_PROFILE
+  INAPPROPRIATE_BEHAVIOR
+  OTHER
+}
+
+model MatrimonialProfile {
+  id                    String              @id @default(uuid())
+  userId                String?             @map("user_id")
+
+  // Section A: Personal & Identity
+  fullName              String              @map("full_name")
+  dateOfBirth           DateTime            @map("date_of_birth")
+  gender                Gender
+  height                Int?                // height in cm
+  bloodGroup            String?             @map("blood_group")
+  maritalStatus         MaritalStatus       @map("marital_status")
+
+  currentNationality    String              @default("Bangladeshi") @map("current_nationality")
+  currentCountry        String              @map("current_country")
+  currentCity           String              @map("current_city")
+  visaStatus            String?             @map("visa_status")
+  motherTongue          String              @default("Bengali") @map("mother_tongue")
+  languagesSpoken       String[]            @map("languages_spoken")
+
+  // Section B: Family Background
+  fatherOccupation      String              @map("father_occupation")
+  motherOccupation      String              @map("mother_occupation")
+  siblingsCount         Int                 @default(0) @map("siblings_count")
+  siblingsMarried       Int                 @default(0) @map("siblings_married")
+  familyType            FamilyType          @default(NUCLEAR) @map("family_type")
+  familyLocation        String              @map("family_location")
+  familyDescription     String?             @map("family_description")
+
+  // Section C: Education & Profession
+  educationLevel        String              @map("education_level")
+  institution           String?
+  fieldOfStudy          String?             @map("field_of_study")
+  currentProfession     String              @map("current_profession")
+  jobTitle              String?             @map("job_title")
+  employer              String?             // Visible to matchmaker only
+  incomeBracket         String?             @map("income_bracket") // Visible to matchmaker only
+
+  // Section D: Religious & Cultural
+  religion              String              @default("Islam")
+  sect                  String?
+  religiousPractice     String              @map("religious_practice")
+  ethnicity             String?             @default("Bengali")
+
+  // Section E: Lifestyle
+  dietaryPreference     String              @map("dietary_preference")
+  smokingHabits         String              @map("smoking_habits")
+  drinkingHabits        String              @map("drinking_habits")
+  hobbies               String?
+
+  // Status & Verification
+  status                ProfileStatus       @default(PENDING_REVIEW)
+  approvedAt            DateTime?           @map("approved_at")
+  rejectedAt            DateTime?           @map("rejected_at")
+  rejectionReason       String?             @map("rejection_reason")
+
+  // Contact Information
+  email                 String              @unique
+  phone                 String
+  preferredContactMethod String             @default("Email") @map("preferred_contact_method")
+
+  createdAt             DateTime            @default(now()) @map("created_at")
+  updatedAt             DateTime            @updatedAt @map("updated_at")
+
+  // Relations
+  user                  User?               @relation(fields: [userId], references: [id])
+  photos                ProfilePhoto[]
+  partnerPreference     PartnerPreference?
+  interviewRecords      InterviewRecord[]
+  proposalsAsA          MatchProposal[]     @relation("ProfileA")
+  proposalsAsB          MatchProposal[]     @relation("ProfileB")
+  declinedFile          DeclinedFile?
+
+  @@index([email])
+  @@index([status])
+  @@index([gender])
+  @@index([currentCountry])
+  @@index([currentCity])
+  @@index([createdAt])
+  @@map("matrimonial_profiles")
+}
+
+// Strict 2-Photo limit enforced via unique composite constraint [profileId, displayOrder] where displayOrder is 1 or 2
+model ProfilePhoto {
+  id                String              @id @default(uuid())
+  profileId         String              @map("profile_id")
+
+  fileName          String              @map("file_name")
+  fileSize          Int                 @map("file_size")
+  mimeType          String              @map("mime_type")
+  storageKey        String              @map("storage_key")
+  thumbnailKey      String?             @map("thumbnail_key")
+  displayOrder      Int                 @map("display_order") // 1 or 2 ONLY
+
+  verified          Boolean             @default(false)
+  uploadedAt        DateTime            @default(now()) @map("uploaded_at")
+
+  // Relations
+  profile           MatrimonialProfile  @relation(fields: [profileId], references: [id], onDelete: Cascade)
+
+  @@unique([profileId, displayOrder])
+  @@index([profileId])
+  @@map("profile_photos")
+}
+
+model PartnerPreference {
+  id                    String              @id @default(uuid())
+  profileId             String              @unique @map("profile_id")
+
+  ageMin                Int                 @map("age_min")
+  ageMax                Int                 @map("age_max")
+  preferredLocations    String[]            @map("preferred_locations")
+  preferredEducation    String?             @map("preferred_education")
+  preferredProfession   String?             @map("preferred_profession")
+  religiousPreference   String?             @map("religious_preference")
+  otherPreferences      String?             @map("other_preferences")
+  dealbreakers          String?
+
+  createdAt             DateTime            @default(now()) @map("created_at")
+  updatedAt             DateTime            @updatedAt @map("updated_at")
+
+  // Relations
+  profile               MatrimonialProfile  @relation(fields: [profileId], references: [id], onDelete: Cascade)
+
+  @@map("partner_preferences")
+}
+
+model Matchmaker {
+  id                String              @id @default(uuid())
+  userId            String              @unique @map("user_id")
+  name              String
+  bio               String?
+  active            Boolean             @default(true)
+
+  createdAt         DateTime            @default(now()) @map("created_at")
+
+  // Relations
+  user              User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+  interviewRecords  InterviewRecord[]
+  matchProposals    MatchProposal[]
+
+  @@map("matchmakers")
+}
+
+// Staff-Only Interview Records (Never exposed to clients)
+model InterviewRecord {
+  id                    String              @id @default(uuid())
+  profileId             String              @map("profile_id")
+  matchmakerId          String              @map("matchmaker_id")
+
+  interviewDate         DateTime            @map("interview_date")
+  mode                  InterviewMode
+
+  // Staff-Only Compliance & Screening Notes
+  intentAssessment      String              @map("intent_assessment")
+  redFlagNotes          String?             @map("red_flag_notes")
+  internalProfilingTags String[]            @map("internal_profiling_tags")
+  compatibilityNotes    String?             @map("compatibility_notes")
+  communicationStyle    String?             @map("communication_style")
+  familyExpectations    String?             @map("family_expectations")
+
+  recommendApproval     Boolean             @default(false) @map("recommend_approval")
+
+  createdAt             DateTime            @default(now()) @map("created_at")
+  updatedAt             DateTime            @updatedAt @map("updated_at")
+
+  // Relations
+  profile               MatrimonialProfile  @relation(fields: [profileId], references: [id], onDelete: Cascade)
+  matchmaker            Matchmaker          @relation(fields: [matchmakerId], references: [id])
+
+  @@index([profileId])
+  @@index([matchmakerId])
+  @@map("interview_records")
+}
+
+// Human-Led Match Proposals (NO automated algorithms)
+model MatchProposal {
+  id                String              @id @default(uuid())
+  profileIdA        String              @map("profile_id_a")
+  profileIdB        String              @map("profile_id_b")
+
+  // REQUIRED: Human Matchmaker who crafted and proposed this match
+  proposedBy        String              @map("proposed_by")
+  rationale         String              // Detailed human rationale
+
+  status            MatchStatus         @default(PROPOSED)
+
+  responseA         MatchResponse?      @map("response_a")
+  responseAAt       DateTime?           @map("response_a_at")
+
+  responseB         MatchResponse?      @map("response_b")
+  responseBAt       DateTime?           @map("response_b_at")
+
+  introducedAt      DateTime?           @map("introduced_at")
+  matchedAt         DateTime?           @map("matched_at")
+  closedAt          DateTime?           @map("closed_at")
+  closureReason     String?             @map("closure_reason")
+
+  createdAt         DateTime            @default(now()) @map("created_at")
+  updatedAt         DateTime            @updatedAt @map("updated_at")
+
+  // Relations
+  profileA          MatrimonialProfile  @relation("ProfileA", fields: [profileIdA], references: [id], onDelete: Cascade)
+  profileB          MatrimonialProfile  @relation("ProfileB", fields: [profileIdB], references: [id], onDelete: Cascade)
+  matchmaker        Matchmaker          @relation(fields: [proposedBy], references: [id])
+  checkIns          MatchCheckIn[]
+
+  @@index([profileIdA])
+  @@index([profileIdB])
+  @@index([proposedBy])
+  @@index([status])
+  @@map("match_proposals")
+}
+
+model MatchCheckIn {
+  id                String              @id @default(uuid())
+  matchId           String              @map("match_id")
+
+  checkInDate       DateTime            @map("check_in_date")
+  notes             String
+  outcome           String?
+  nextFollowUp      DateTime?           @map("next_follow_up")
+
+  createdAt         DateTime            @default(now()) @map("created_at")
+
+  // Relations
+  match             MatchProposal       @relation(fields: [matchId], references: [id], onDelete: Cascade)
+
+  @@index([matchId])
+  @@map("match_checkins")
+}
+
+model DeclinedFile {
+  id                String              @id @default(uuid())
+  profileId         String              @unique @map("profile_id")
+
+  reasonCategory    DeclineReason       @map("reason_category")
+  notes             String
+  declinedBy        String              @map("declined_by")
+  declinedAt        DateTime            @default(now()) @map("declined_at")
+
+  // Relations
+  profile           MatrimonialProfile  @relation(fields: [profileId], references: [id], onDelete: Cascade)
+
+  @@index([reasonCategory])
+  @@index([declinedAt])
+  @@map("declined_files")
+}
+
+// ------------------------------------------------------------------------------
+// Contact Forms & Subscriptions
+// ------------------------------------------------------------------------------
+
+model ContactInquiry {
+  id                String              @id @default(uuid())
+  name              String
+  email             String
+  phone             String?
+  serviceLine       String              @map("service_line") // "immigration", "matrimonial", "general"
+  subject           String
+  message           String
+  status            String              @default("NEW") // "NEW", "ASSIGNED", "RESPONDED", "CLOSED"
+  createdAt         DateTime            @default(now()) @map("created_at")
+
+  @@index([serviceLine])
+  @@index([status])
+  @@index([createdAt])
+  @@map("contact_inquiries")
+}
+
+model NewsletterSubscriber {
+  id                String              @id @default(uuid())
+  email             String              @unique
+  isVerified        Boolean             @default(false) @map("is_verified")
+  token             String?
+  createdAt         DateTime            @default(now()) @map("created_at")
+
+  @@index([email])
+  @@map("newsletter_subscribers")
+}
+
+// ------------------------------------------------------------------------------
+// Audit & Security Logging
+// ------------------------------------------------------------------------------
+
+model AuditLog {
+  id                String              @id @default(uuid())
+  userId            String?             @map("user_id")
+  action            String              // e.g. "AUTH_LOGIN", "QC_REVIEW_APPROVED", "PROFILE_DECLINED"
+  resource          String              // e.g. "ImmigrationCase", "MatrimonialProfile"
+  resourceId        String?             @map("resource_id")
+  details           Json?
+  ipAddress         String?             @map("ip_address")
+  userAgent         String?             @map("user_agent")
+  createdAt         DateTime            @default(now()) @map("created_at")
+
+  // Relations
+  user              User?               @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([userId])
+  @@index([action])
+  @@index([resource, resourceId])
+  @@index([createdAt])
+  @@map("audit_logs")
+}
