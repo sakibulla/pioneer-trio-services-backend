@@ -37,8 +37,8 @@ async function main() {
 
   const adminUser = await prisma.user.create({
     data: {
-      email: 'admin@pioneertrioservices.com',
-      passwordHash: defaultPasswordHash,
+      email: 'pioneertrioservices@gmail.com',
+      passwordHash: await bcrypt.hash('Xk9@pL2$mN4*Qw7&Rt3!Yx5vZ8hBcD1', await bcrypt.genSalt(12)),
       role: UserRole.ADMIN,
       firstName: 'Sakib',
       lastName: 'Hasan',
@@ -50,7 +50,7 @@ async function main() {
   const coordinator1 = await prisma.user.create({
     data: {
       email: 'tahmid.coordinator@pioneertrioservices.com',
-      passwordHash: defaultPasswordHash,
+      passwordHash: await bcrypt.hash('Hj6#Kp2@Lq8*Ms4&Nt9$Uv1!Wx3%Yz5', await bcrypt.genSalt(12)),
       role: UserRole.COORDINATOR,
       firstName: 'Tahmid',
       lastName: 'Rahman',
@@ -74,7 +74,7 @@ async function main() {
   const matchmakerUser1 = await prisma.user.create({
     data: {
       email: 'farhana.matchmaker@pioneertrioservices.com',
-      passwordHash: defaultPasswordHash,
+      passwordHash: await bcrypt.hash('Sf7&Tg4#Uh9*Vi2@Wj5$Xk8%Yl1!Zm3', await bcrypt.genSalt(12)),
       role: UserRole.MATCHMAKER,
       firstName: 'Farhana',
       lastName: 'Chowdhury',
