@@ -3,7 +3,6 @@
     "target": "ES2022",
     "module": "commonjs",
     "lib": ["ES2022"],
-    "types": ["node"],
     "allowJs": true,
     "outDir": "./dist",
     "rootDir": "./src",
@@ -17,7 +16,7 @@
     "alwaysStrict": true,
     "noUnusedLocals": false,
     "noUnusedParameters": false,
-    "noImplicitReturns": true,
+    "noImplicitReturns": false,
     "noFallthroughCasesInSwitch": true,
     "moduleResolution": "bundler",
     "paths": {
