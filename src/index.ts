@@ -1,3 +1,4 @@
+/// <reference types="node" />
 import http from 'http';
 import { createApp } from './app';
 import { env } from './config/env';
