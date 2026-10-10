@@ -87,16 +87,20 @@ export const createApp = (): Application => {
 
   // 5. Root Health, Metrics & Rate Limiting
   app.get('/', (_req: Request, res: Response) => {
+    const baseUrl = env.NODE_ENV === 'production' 
+      ? 'https://pioneer-backend-5qhe.onrender.com'
+      : `http://localhost:${env.PORT}`;
+    
     res.json({
       name: 'Pioneer Trio Services API',
       version: '1.0.0',
       status: 'active',
-      documentation: `http://localhost:${env.PORT}${env.API_PREFIX}/docs`,
+      documentation: `${baseUrl}${env.API_PREFIX}/docs`,
       endpoints: {
-        health: `http://localhost:${env.PORT}/health`,
-        metrics: `http://localhost:${env.PORT}/metrics`,
-        api_v1: `http://localhost:${env.PORT}${env.API_PREFIX}`,
-        swagger_docs: `http://localhost:${env.PORT}${env.API_PREFIX}/docs`,
+        health: `${baseUrl}/health`,
+        metrics: `${baseUrl}/metrics`,
+        api_v1: `${baseUrl}${env.API_PREFIX}`,
+        swagger_docs: `${baseUrl}${env.API_PREFIX}/docs`,
       },
     });
   });

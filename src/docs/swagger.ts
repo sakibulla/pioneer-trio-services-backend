@@ -29,8 +29,8 @@ High-performance, secure backend REST API server for **Pioneer Trio Services** (
       description: 'Local Development Server',
     },
     {
-      url: `https://api.pioneertrioservices.com${env.API_PREFIX}`,
-      description: 'Production API Gateway',
+      url: `https://pioneer-backend-5qhe.onrender.com${env.API_PREFIX}`,
+      description: 'Production API',
     },
   ],
   components: {

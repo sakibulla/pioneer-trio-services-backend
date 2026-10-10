@@ -28,11 +28,15 @@ const bootstrap = async () => {
     const server = http.createServer(app);
 
     server.listen(env.PORT, () => {
+      const baseUrl = env.NODE_ENV === 'production' 
+        ? 'https://pioneer-backend-5qhe.onrender.com'
+        : `http://localhost:${env.PORT}`;
+      
       logger.info(`🌟 Server running in ${env.NODE_ENV} mode on port ${env.PORT}`);
-      logger.info(`📖 API Documentation available at http://localhost:${env.PORT}${env.API_PREFIX}/docs`);
-      logger.info(`🩺 Health check endpoint: http://localhost:${env.PORT}/health`);
-      logger.info(`📊 Prometheus metrics: http://localhost:${env.PORT}/metrics`);
-      logger.info(`🚦 Queue Dashboard: http://localhost:${env.PORT}/admin/queues`);
+      logger.info(`📖 API Documentation available at ${baseUrl}${env.API_PREFIX}/docs`);
+      logger.info(`🩺 Health check endpoint: ${baseUrl}/health`);
+      logger.info(`📊 Prometheus metrics: ${baseUrl}/metrics`);
+      logger.info(`🚦 Queue Dashboard: ${baseUrl}/admin/queues`);
     });
 
     // 6. Graceful Shutdown Handlers
