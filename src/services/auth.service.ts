@@ -106,7 +106,7 @@ export class AuthService {
       let lockedUntil: Date | null = null;
 
       if (attempts >= 5) {
-        lockedUntil = new Date(Date.now() + 15 * 60 * 1000); // Lock for 15 mins
+        lockedUntil = new Date(Date.now() + 5 * 60 * 1000); // Lock for 5 mins
       }
 
       await prisma.user.update({
