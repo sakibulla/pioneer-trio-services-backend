@@ -15,7 +15,7 @@ services:
       - key: NODE_ENV
         value: production
       - key: PORT
-        value: 10000
+        value: "5000"
       - key: API_PREFIX
         value: /api/v1
       
@@ -56,9 +56,9 @@ services:
       - key: SMTP_HOST
         value: smtp.gmail.com
       - key: SMTP_PORT
-        value: 587
+        value: "587"
       - key: SMTP_SECURE
-        value: false
+        value: "false"
       - key: SMTP_USER
         sync: false
       - key: SMTP_PASS
@@ -76,9 +76,9 @@ services:
       
       # Rate Limiting
       - key: RATE_LIMIT_GLOBAL_MAX
-        value: 100
+        value: "100"
       - key: RATE_LIMIT_AUTH_MAX
-        value: 5
+        value: "5"
 
 # PostgreSQL Database (Free tier)
 databases:
