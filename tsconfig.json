@@ -2,7 +2,8 @@
   "compilerOptions": {
     "target": "ES2022",
     "module": "commonjs",
-    "lib": ["ES2022", "DOM"],
+    "lib": ["ES2022"],
+    "typeRoots": ["./node_modules/@types", "./src/types"],
     "allowJs": true,
     "outDir": "./dist",
     "rootDir": "./src",
@@ -29,6 +30,6 @@
     "forceConsistentCasingInFileNames": true,
     "resolveJsonModule": true
   },
-  "include": ["src/**/*"],
+  "include": ["src/**/*", "src/types/**/*.d.ts"],
   "exclude": ["node_modules", "dist", "tests/**/*"]
 }
