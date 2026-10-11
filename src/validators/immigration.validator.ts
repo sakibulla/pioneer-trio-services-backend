@@ -3,21 +3,21 @@ import { Gender, MaritalStatus, CaseStatus, EmploymentStatus, QCOutcome, NoteTyp
 
 export const createAssessmentSchema = z.object({
   // Section A: Personal & Identity
-  fullName: z.string().min(3, 'Full name must be at least 3 characters'),
+  fullName: z.string().min(2, 'Full name is required'),
   email: z.string().email('Invalid email address'),
-  phone: z.string().min(8, 'Phone number is required'),
+  phone: z.string().min(5, 'Phone number is required'),
   dateOfBirth: z.string().transform((str) => new Date(str)),
   gender: z.nativeEnum(Gender),
   nationality: z.string().default('Bangladeshi'),
   nidNumber: z.string().optional(),
-  passportNumber: z.string().min(6, 'Valid passport number is required'),
+  passportNumber: z.string().min(1, 'Passport number is required'),
   passportExpiry: z.string().transform((str) => new Date(str)),
   maritalStatus: z.nativeEnum(MaritalStatus),
-  currentAddress: z.string().min(5, 'Current address is required'),
+  currentAddress: z.string().min(1, 'Current address is required'),
 
   // Section B: Immigration Goal
-  destinationCountry: z.string().min(2, 'Destination country is required'),
-  applicationType: z.string().min(2, 'Application type is required'),
+  destinationCountry: z.string().min(1, 'Destination country is required'),
+  applicationType: z.string().min(1, 'Application type is required'),
   specificProgram: z.string().optional(),
   targetApplicationDate: z.string().optional().transform((str) => (str ? new Date(str) : undefined)),
   priorApplications: z.boolean().default(false),
@@ -68,12 +68,12 @@ export const createAssessmentSchema = z.object({
 
   // Section F: Home Country Ties
   homeCountryTies: z.object({
-    applicationPurpose: z.string().min(5, 'Application purpose explanation is required'),
+    applicationPurpose: z.string().min(1, 'Application purpose is required'),
     familyInBangladesh: z.boolean().default(true),
     familyDetails: z.string().optional(),
     ownsProperty: z.boolean().default(false),
     propertyDetails: z.string().optional(),
-    intentToReturn: z.string().min(5, 'Intent to return / diaspora ties explanation is required'),
+    intentToReturn: z.string().min(1, 'Intent to return is required'),
   }),
 });
 

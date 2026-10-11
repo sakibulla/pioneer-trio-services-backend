@@ -12,33 +12,33 @@ import {
 
 export const createMatrimonialProfileSchema = z.object({
   // Section A: Personal & Identity
-  fullName: z.string().min(3, 'Full name must be at least 3 characters'),
+  fullName: z.string().min(2, 'Full name is required'),
   dateOfBirth: z.string().transform((str) => new Date(str)),
   gender: z.nativeEnum(Gender),
   height: z.number().int().positive().optional(),
   bloodGroup: z.string().optional(),
   maritalStatus: z.nativeEnum(MaritalStatus),
   currentNationality: z.string().default('Bangladeshi'),
-  currentCountry: z.string().min(2, 'Current country is required'),
-  currentCity: z.string().min(2, 'Current city is required'),
+  currentCountry: z.string().min(1, 'Current country is required'),
+  currentCity: z.string().min(1, 'Current city is required'),
   visaStatus: z.string().optional(),
   motherTongue: z.string().default('Bengali'),
   languagesSpoken: z.array(z.string()).min(1, 'At least one language is required'),
 
   // Section B: Family Background
-  fatherOccupation: z.string().min(2, 'Father occupation is required'),
-  motherOccupation: z.string().min(2, 'Mother occupation is required'),
+  fatherOccupation: z.string().min(1, 'Father occupation is required'),
+  motherOccupation: z.string().min(1, 'Mother occupation is required'),
   siblingsCount: z.number().int().nonnegative().default(0),
   siblingsMarried: z.number().int().nonnegative().default(0),
   familyType: z.nativeEnum(FamilyType).default(FamilyType.NUCLEAR),
-  familyLocation: z.string().min(2, 'Family location is required'),
+  familyLocation: z.string().min(1, 'Family location is required'),
   familyDescription: z.string().optional(),
 
   // Section C: Education & Profession
-  educationLevel: z.string().min(2, 'Education level is required'),
+  educationLevel: z.string().min(1, 'Education level is required'),
   institution: z.string().optional(),
   fieldOfStudy: z.string().optional(),
-  currentProfession: z.string().min(2, 'Current profession is required'),
+  currentProfession: z.string().min(1, 'Current profession is required'),
   jobTitle: z.string().optional(),
   employer: z.string().optional(),
   incomeBracket: z.string().optional(),
@@ -46,18 +46,18 @@ export const createMatrimonialProfileSchema = z.object({
   // Section D: Religious & Cultural
   religion: z.string().default('Islam'),
   sect: z.string().optional(),
-  religiousPractice: z.string().min(2, 'Religious practice description is required'),
+  religiousPractice: z.string().min(1, 'Religious practice is required'),
   ethnicity: z.string().default('Bengali'),
 
   // Section E: Lifestyle
-  dietaryPreference: z.string().min(2, 'Dietary preference is required'),
-  smokingHabits: z.string().min(2, 'Smoking habits description is required'),
-  drinkingHabits: z.string().min(2, 'Drinking habits description is required'),
+  dietaryPreference: z.string().min(1, 'Dietary preference is required'),
+  smokingHabits: z.string().min(1, 'Smoking habits is required'),
+  drinkingHabits: z.string().min(1, 'Drinking habits is required'),
   hobbies: z.string().optional(),
 
   // Contact
   email: z.string().email('Valid email address is required'),
-  phone: z.string().min(8, 'Phone number is required'),
+  phone: z.string().min(5, 'Phone number is required'),
   preferredContactMethod: z.string().default('Email'),
 
   // Section F: Partner Preferences
