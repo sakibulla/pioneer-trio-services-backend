@@ -6,6 +6,7 @@ import { validateRequest } from '../../../middleware/validation';
 import {
   createAssessmentSchema,
   updateCaseStatusSchema,
+  updateCaseSchema,
   createQCReviewSchema,
   createCaseNoteSchema,
 } from '../../../validators/immigration.validator';
@@ -43,6 +44,15 @@ router.patch(
   requireCaseOwnership,
   validateRequest({ body: updateCaseStatusSchema }),
   ImmigrationController.updateCaseStatus
+);
+
+// Client can update their case data (not status)
+router.patch(
+  '/cases/:id',
+  requireRole([UserRole.CLIENT, UserRole.ADMIN]),
+  requireCaseOwnership,
+  validateRequest({ body: updateCaseSchema }),
+  ImmigrationController.updateCase
 );
 
 // Documents

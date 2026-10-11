@@ -110,4 +110,9 @@ export class ImmigrationController {
     );
     ApiResponse.success(res, result, `Document ${verified ? 'verified' : 'unverified'} successfully`);
   });
+
+  public static updateCase = asyncHandler(async (req: Request, res: Response) => {
+    const result = await ImmigrationService.updateCase(req.params.id, req.body, req.user);
+    ApiResponse.success(res, result, 'Case updated successfully');
+  });
 }

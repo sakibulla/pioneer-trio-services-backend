@@ -346,6 +346,43 @@ export class ImmigrationService {
   }
 
   /**
+   * Update case details (client/admin can edit their case)
+   */
+  public static async updateCase(caseId: string, updateData: any, user?: any) {
+    const existing = await prisma.immigrationCase.findUnique({ where: { id: caseId } });
+    if (!existing) throw new NotFoundError('Case not found');
+
+    // Client can only update their own case while it's in SUBMITTED state
+    if (user?.role === 'CLIENT' && existing.status !== CaseStatus.SUBMITTED) {
+      throw new ForbiddenError('You can only edit your case while it is in SUBMITTED state');
+    }
+
+    const updated = await prisma.immigrationCase.update({
+      where: { id: caseId },
+      data: {
+        destinationCountry: updateData.destinationCountry || existing.destinationCountry,
+        applicationType: updateData.applicationType || existing.applicationType,
+        specificProgram: updateData.specificProgram || existing.specificProgram,
+        targetApplicationDate: updateData.targetApplicationDate || existing.targetApplicationDate,
+        priorApplications: updateData.priorApplications ?? existing.priorApplications,
+        priorRefusals: updateData.priorRefusals ?? existing.priorRefusals,
+        refusalDetails: updateData.refusalDetails || existing.refusalDetails,
+        stage: updateData.stage || existing.stage,
+      },
+    });
+
+    await AuditService.log({
+      userId: user?.userId,
+      action: 'CASE_UPDATED',
+      resource: 'ImmigrationCase',
+      resourceId: caseId,
+      details: { updates: updateData },
+    });
+
+    return updated;
+  }
+
+  /**
    * Submit QC Review enforcing four-eyes principle
    */
   public static async submitQCReview(
