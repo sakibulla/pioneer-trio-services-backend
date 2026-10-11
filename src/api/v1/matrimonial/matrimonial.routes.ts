@@ -30,6 +30,9 @@ router.get('/profiles/:id', optionalAuth, MatrimonialController.getProfileById);
 // Protected Operations
 router.use(verifyToken);
 
+// Get user's own profile
+router.get('/my-profile', MatrimonialController.getMyProfile);
+
 // Photo Upload (2-Photo limit enforced in controller and DB)
 router.post(
   '/profiles/:profileId/photos',

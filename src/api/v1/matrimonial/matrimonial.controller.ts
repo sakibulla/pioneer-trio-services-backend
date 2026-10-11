@@ -89,6 +89,15 @@ export class MatrimonialController {
     ApiResponse.success(res, null, 'Profile declined and recorded for compliance audit');
   });
 
+  // Get user's own matrimonial profile
+  public static getMyProfile = asyncHandler(async (req: Request, res: Response) => {
+    const profile = await MatrimonialService.getProfileByUserId(req.user!.userId);
+    if (!profile) {
+      return ApiResponse.success(res, null, 'No matrimonial profile found', 200);
+    }
+    ApiResponse.success(res, profile, 'Your matrimonial profile retrieved');
+  });
+
   // Client matches view & response
   public static getMyMatches = asyncHandler(async (req: Request, res: Response) => {
     const result = await MatchmakerService.listMatches(

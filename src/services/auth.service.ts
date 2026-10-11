@@ -26,8 +26,11 @@ export class AuthService {
       throw new ConflictError('A user account with this email address already exists');
     }
 
+    console.log('[AUTH_REGISTER] Starting registration for:', data.email);
     const salt = await bcrypt.genSalt(env.BCRYPT_SALT_ROUNDS);
+    console.log('[AUTH_REGISTER] Salt generated with rounds:', env.BCRYPT_SALT_ROUNDS);
     const passwordHash = await bcrypt.hash(data.password, salt);
+    console.log('[AUTH_REGISTER] Password hashed, hash length:', passwordHash.length);
 
     const user = await prisma.user.create({
       data: {
@@ -39,6 +42,10 @@ export class AuthService {
         role: data.role || UserRole.CLIENT,
       },
     });
+
+    console.log('[AUTH_REGISTER] User created with id:', user.id);
+    console.log('[AUTH_REGISTER] Saved passwordHash length:', user.passwordHash?.length);
+    console.log('[AUTH_REGISTER] Hash matches:', user.passwordHash === passwordHash);
 
     const userPayload: AuthUserPayload = {
       userId: user.id,

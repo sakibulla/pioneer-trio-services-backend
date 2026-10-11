@@ -208,6 +208,28 @@ export class MatrimonialService {
   }
 
   /**
+   * Get user's own profile by userId
+   */
+  public static async getProfileByUserId(userId: string) {
+    if (!userId) return null;
+
+    const profile = await prisma.matrimonialProfile.findFirst({
+      where: { userId },
+      include: {
+        photos: true,
+        partnerPreference: true,
+        interviewRecords: {
+          include: {
+            matchmaker: true,
+          },
+        },
+      },
+    });
+
+    return profile;
+  }
+
+  /**
    * Create staff-only interview record
    */
   public static async createInterviewRecord(
