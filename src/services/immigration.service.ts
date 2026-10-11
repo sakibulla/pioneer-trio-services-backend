@@ -235,7 +235,8 @@ export class ImmigrationService {
     if (role === UserRole.COORDINATOR) {
       where.coordinatorId = userId;
     } else if (role === UserRole.CLIENT) {
-      where.client = { email: userEmail };
+      // Find cases where the client email matches the user email (case-insensitive)
+      where.client = { email: userEmail.toLowerCase() };
     }
 
     if (filters.status) {
