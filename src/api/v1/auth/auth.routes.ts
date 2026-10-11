@@ -8,16 +8,15 @@ import {
   forgotPasswordSchema,
   googleTokenSchema,
 } from '../../../validators/auth.validator';
-import { authRateLimiter } from '../../../middleware/rateLimiter';
 import { verifyToken } from '../../../middleware/auth';
 
 const router = Router();
 
-router.post('/register', authRateLimiter, validateRequest({ body: registerSchema }), AuthController.register);
-router.post('/login', authRateLimiter, validateRequest({ body: loginSchema }), AuthController.login);
-router.post('/google', authRateLimiter, validateRequest({ body: googleTokenSchema }), AuthController.googleLogin);
+router.post('/register', validateRequest({ body: registerSchema }), AuthController.register);
+router.post('/login', validateRequest({ body: loginSchema }), AuthController.login);
+router.post('/google', validateRequest({ body: googleTokenSchema }), AuthController.googleLogin);
 router.post('/refresh', validateRequest({ body: refreshTokenSchema }), AuthController.refreshToken);
-router.post('/forgot-password', authRateLimiter, validateRequest({ body: forgotPasswordSchema }), AuthController.forgotPassword);
+router.post('/forgot-password', validateRequest({ body: forgotPasswordSchema }), AuthController.forgotPassword);
 router.post('/logout', verifyToken, AuthController.logout);
 router.get('/me', verifyToken, AuthController.getMe);
 
