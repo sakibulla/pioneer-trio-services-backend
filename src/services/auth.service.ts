@@ -99,6 +99,10 @@ export class AuthService {
     const isValid = await bcrypt.compare(password, user.passwordHash);
 
     if (!isValid) {
+      console.error('[AUTH_LOGIN_INVALID] Password comparison failed for user:', email);
+      console.error('[AUTH_LOGIN_DEBUG] passwordHash exists:', !!user.passwordHash);
+      console.error('[AUTH_LOGIN_DEBUG] password length:', password.length);
+      console.error('[AUTH_LOGIN_DEBUG] passwordHash length:', user.passwordHash?.length);
       throw new UnauthorizedError('Invalid email or password');
     }
 
