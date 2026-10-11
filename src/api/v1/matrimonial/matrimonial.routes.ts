@@ -42,20 +42,34 @@ router.post(
   MatrimonialController.uploadPhoto
 );
 
-// Staff-Only Interview Records
+// Staff-Only Interview Records (Admin Only)
 router.post(
   '/profiles/:profileId/interview',
-  requireRole([UserRole.ADMIN, UserRole.MATCHMAKER]),
+  requireRole([UserRole.ADMIN]),
   validateRequest({ body: createInterviewRecordSchema }),
   MatrimonialController.createInterviewRecord
 );
 
-// Decline Profile (Compliance)
+// Decline Profile (Compliance - Admin Only)
 router.post(
   '/profiles/:id/decline',
-  requireRole([UserRole.ADMIN, UserRole.MATCHMAKER]),
+  requireRole([UserRole.ADMIN]),
   validateRequest({ body: declineProfileSchema }),
   MatrimonialController.declineProfile
+);
+
+// Approve Profile (Admin Only)
+router.post(
+  '/profiles/:id/approve',
+  requireRole([UserRole.ADMIN]),
+  MatrimonialController.approveProfile
+);
+
+// Update Profile (Admin Only)
+router.patch(
+  '/profiles/:id',
+  requireRole([UserRole.ADMIN]),
+  MatrimonialController.updateProfile
 );
 
 // Client Match Viewing & Response

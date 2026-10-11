@@ -27,7 +27,7 @@ router.use(verifyToken);
 
 router.get(
   '/cases',
-  requireRole([UserRole.ADMIN, UserRole.COORDINATOR, UserRole.CLIENT]),
+  requireRole([UserRole.ADMIN, UserRole.CLIENT]),
   ImmigrationController.listCases
 );
 
@@ -39,7 +39,7 @@ router.get(
 
 router.patch(
   '/cases/:id/status',
-  requireRole([UserRole.ADMIN, UserRole.COORDINATOR]),
+  requireRole([UserRole.ADMIN]),
   requireCaseOwnership,
   validateRequest({ body: updateCaseStatusSchema }),
   ImmigrationController.updateCaseStatus
@@ -48,7 +48,7 @@ router.patch(
 // Documents
 router.post(
   '/cases/:caseId/documents',
-  requireRole([UserRole.ADMIN, UserRole.COORDINATOR, UserRole.CLIENT]),
+  requireRole([UserRole.ADMIN, UserRole.CLIENT]),
   requireCaseOwnership,
   uploadRateLimiter,
   uploadDocument.single('file'),
@@ -57,14 +57,14 @@ router.post(
 
 router.get(
   '/documents/:id/download',
-  requireRole([UserRole.ADMIN, UserRole.COORDINATOR]),
+  requireRole([UserRole.ADMIN]),
   ImmigrationController.getDocumentDownload
 );
 
 // QC Reviews
 router.post(
   '/cases/:caseId/qc-review',
-  requireRole([UserRole.ADMIN, UserRole.COORDINATOR]),
+  requireRole([UserRole.ADMIN]),
   requireQCReviewer,
   validateRequest({ body: createQCReviewSchema }),
   ImmigrationController.submitQCReview
@@ -73,7 +73,7 @@ router.post(
 // Case Notes
 router.post(
   '/cases/:caseId/notes',
-  requireRole([UserRole.ADMIN, UserRole.COORDINATOR, UserRole.CLIENT]),
+  requireRole([UserRole.ADMIN, UserRole.CLIENT]),
   requireCaseOwnership,
   validateRequest({ body: createCaseNoteSchema }),
   ImmigrationController.addNote

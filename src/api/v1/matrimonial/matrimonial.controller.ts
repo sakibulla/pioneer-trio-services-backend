@@ -89,6 +89,16 @@ export class MatrimonialController {
     ApiResponse.success(res, null, 'Profile declined and recorded for compliance audit');
   });
 
+  public static approveProfile = asyncHandler(async (req: Request, res: Response) => {
+    const result = await MatrimonialService.approveProfile(req.params.id);
+    ApiResponse.success(res, result, 'Matrimonial profile approved and is now visible to other clients');
+  });
+
+  public static updateProfile = asyncHandler(async (req: Request, res: Response) => {
+    const result = await MatrimonialService.updateProfile(req.params.id, req.body);
+    ApiResponse.success(res, result, 'Matrimonial profile updated successfully');
+  });
+
   // Get user's own matrimonial profile
   public static getMyProfile = asyncHandler(async (req: Request, res: Response) => {
     // First try userId (for users who submitted while logged in)

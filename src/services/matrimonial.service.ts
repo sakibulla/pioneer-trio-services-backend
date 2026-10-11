@@ -346,4 +346,66 @@ export class MatrimonialService {
       details: { reasonCategory, notes },
     });
   }
+
+  /**
+   * Approve matrimonial profile (Admin only)
+   */
+  public static async approveProfile(profileId: string) {
+    const profile = await prisma.matrimonialProfile.findUnique({
+      where: { id: profileId },
+    });
+
+    if (!profile) throw new NotFoundError('Matrimonial profile not found');
+
+    const updated = await prisma.matrimonialProfile.update({
+      where: { id: profileId },
+      data: {
+        status: ProfileStatus.ACTIVE,
+        approvedAt: new Date(),
+      },
+      include: {
+        photos: true,
+        partnerPreference: true,
+      },
+    });
+
+    await AuditService.log({
+      userId: 'ADMIN',
+      action: 'PROFILE_APPROVED',
+      resource: 'MatrimonialProfile',
+      resourceId: profileId,
+    });
+
+    return updated;
+  }
+
+  /**
+   * Update matrimonial profile (Admin only)
+   */
+  public static async updateProfile(profileId: string, data: any) {
+    const profile = await prisma.matrimonialProfile.findUnique({
+      where: { id: profileId },
+    });
+
+    if (!profile) throw new NotFoundError('Matrimonial profile not found');
+
+    const updated = await prisma.matrimonialProfile.update({
+      where: { id: profileId },
+      data,
+      include: {
+        photos: true,
+        partnerPreference: true,
+      },
+    });
+
+    await AuditService.log({
+      userId: 'ADMIN',
+      action: 'PROFILE_UPDATED',
+      resource: 'MatrimonialProfile',
+      resourceId: profileId,
+      details: { updateFields: Object.keys(data) },
+    });
+
+    return updated;
+  }
 }

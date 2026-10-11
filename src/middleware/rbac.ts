@@ -40,11 +40,7 @@ export const requireCaseOwnership = async (req: Request, _res: Response, next: N
       return next(new NotFoundError(`Immigration case '${caseId}' not found`));
     }
 
-    if (req.user.role === UserRole.COORDINATOR) {
-      if (caseRecord.coordinatorId !== req.user.userId) {
-        return next(new ForbiddenError('You are not assigned to manage this immigration case'));
-      }
-    } else if (req.user.role === UserRole.CLIENT) {
+    if (req.user.role === UserRole.CLIENT) {
       if (caseRecord.client.email !== req.user.email) {
         return next(new ForbiddenError('You do not own this immigration case'));
       }
@@ -61,9 +57,8 @@ export const requireCaseOwnership = async (req: Request, _res: Response, next: N
 export const requireProfileOwnership = async (req: Request, _res: Response, next: NextFunction): Promise<void> => {
   if (!req.user) return next(new UnauthorizedError());
 
-  if (req.user.role === UserRole.ADMIN || req.user.role === UserRole.MATCHMAKER) {
-    return next();
-  }
+  // Admins bypass ownership checks
+  if (req.user.role === UserRole.ADMIN) return next();
 
   const profileId = req.params.profileId || req.params.id;
   if (!profileId) return next(new NotFoundError('Profile ID required'));
@@ -89,6 +84,7 @@ export const requireProfileOwnership = async (req: Request, _res: Response, next
 
 /**
  * 4-Eyes Principle: Enforce that the QC Reviewer must NOT be the same coordinator who prepared the case.
+ * Since Coordinators are removed, only Admins perform QC reviews, so this check is simplified.
  */
 export const requireQCReviewer = async (req: Request, _res: Response, next: NextFunction): Promise<void> => {
   if (!req.user) return next(new UnauthorizedError());
@@ -103,11 +99,12 @@ export const requireQCReviewer = async (req: Request, _res: Response, next: Next
       return next(new NotFoundError(`Case '${caseId}' not found`));
     }
 
-    if (caseRecord.coordinatorId === req.user.userId && req.user.role !== UserRole.ADMIN) {
-      return next(new ForbiddenError('Compliance violation: A coordinator cannot perform QC review on their own assigned case.'));
+    // Admins can always perform QC reviews
+    if (req.user.role === UserRole.ADMIN) {
+      return next();
     }
 
-    next();
+    return next(new ForbiddenError('Only Admin users can perform QC reviews.'));
   } catch (err) {
     next(err);
   }
