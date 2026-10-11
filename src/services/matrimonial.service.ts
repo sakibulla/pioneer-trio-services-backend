@@ -1,5 +1,4 @@
 import { Prisma, ProfileStatus, UserRole, DeclineReason, InterviewMode } from '@prisma/client';
-import bcryptjs from 'bcryptjs';
 import { prisma } from '../config/database';
 import { BadRequestError, ForbiddenError, NotFoundError } from '../utils/appError';
 import { emailQueue } from '../jobs/queue';
@@ -20,39 +19,10 @@ export class MatrimonialService {
     }
 
     const profile = await prisma.$transaction(async (tx) => {
-      // Auto-create User account if doesn't exist
-      let user = await tx.user.findUnique({
-        where: { email: data.email.toLowerCase() },
-      });
-
-      if (!user) {
-        // Generate temporary password: first 6 chars of name + 4 random digits
-        const namePrefix = data.fullName?.substring(0, 6).toUpperCase() || "MATCH";
-        const randomSuffix = Math.floor(1000 + Math.random() * 9000);
-        const tempPassword = `${namePrefix}${randomSuffix}`;
-        
-        // Hash the temporary password
-        const hashedPassword = await bcryptjs.hash(tempPassword, 12);
-        
-        user = await tx.user.create({
-          data: {
-            email: data.email.toLowerCase(),
-            passwordHash: hashedPassword,
-            firstName: data.fullName?.split(' ')[0] || 'Client',
-            lastName: data.fullName?.split(' ').slice(1).join(' ') || 'Profile',
-            role: UserRole.CLIENT,
-            active: true,
-          },
-        });
-
-        // Log the temporary password for debugging (in production, send via email)
-        console.log(`[AUTO_USER_CREATED] ${data.email} - temp password: ${tempPassword}`);
-      }
-
       // 1. Create Matrimonial Profile
       const createdProfile = await tx.matrimonialProfile.create({
         data: {
-          userId: user.id,
+          userId,
           fullName: data.fullName,
           dateOfBirth: data.dateOfBirth,
           gender: data.gender,
