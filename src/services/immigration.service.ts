@@ -237,6 +237,8 @@ export class ImmigrationService {
     } else if (role === UserRole.CLIENT) {
       // Find cases where the client email matches the user email (case-insensitive)
       where.client = { email: userEmail.toLowerCase() };
+    } else if (role === UserRole.ADMIN) {
+      // Admin sees ALL cases - no filtering
     }
 
     if (filters.status) {
