@@ -85,4 +85,11 @@ router.get(
   ImmigrationController.listNotes
 );
 
+// Document Verification (Admin Only)
+router.patch(
+  '/documents/:documentId/verify',
+  requireRole([UserRole.ADMIN]),
+  ImmigrationController.verifyDocument
+);
+
 export const immigrationRoutes = router;

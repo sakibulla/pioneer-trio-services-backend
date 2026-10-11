@@ -94,4 +94,20 @@ export class ImmigrationController {
     const result = await ImmigrationService.listNotes(req.params.caseId, req.user!.role);
     ApiResponse.success(res, result);
   });
+
+  public static verifyDocument = asyncHandler(async (req: Request, res: Response) => {
+    const { documentId } = req.params;
+    const { verified } = req.body;
+    
+    if (typeof verified !== 'boolean') {
+      throw new BadRequestError('verified field must be a boolean');
+    }
+
+    const result = await documentService.updateDocumentVerification(
+      documentId,
+      verified,
+      req.user!.userId
+    );
+    ApiResponse.success(res, result, `Document ${verified ? 'verified' : 'unverified'} successfully`);
+  });
 }

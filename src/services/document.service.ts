@@ -130,6 +130,26 @@ class DocumentService {
   }
 
   /**
+   * Update document verification status (Admin Only)
+   */
+  public async updateDocumentVerification(documentId: string, verified: boolean, adminId: string) {
+    const doc = await prisma.caseDocument.findUnique({ where: { id: documentId } });
+    if (!doc) throw new NotFoundError('Document not found');
+
+    const updated = await prisma.caseDocument.update({
+      where: { id: documentId },
+      data: {
+        verified,
+        verifiedBy: verified ? adminId : null,
+        verifiedAt: verified ? new Date() : null,
+      },
+    });
+
+    logger.info(`Document [${doc.documentType}] ${verified ? 'verified' : 'unverified'} by admin ${adminId}`);
+    return updated;
+  }
+
+  /**
    * Upload Profile Photo (Optimized & WebP)
    */
   public async uploadPhoto(profileId: string, displayOrder: number, optimizedBuffer: Buffer, thumbnailBuffer: Buffer, originalName: string) {
