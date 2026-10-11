@@ -91,7 +91,14 @@ export class MatrimonialController {
 
   // Get user's own matrimonial profile
   public static getMyProfile = asyncHandler(async (req: Request, res: Response) => {
-    const profile = await MatrimonialService.getProfileByUserId(req.user!.userId);
+    // First try userId (for users who submitted while logged in)
+    let profile = await MatrimonialService.getProfileByUserId(req.user!.userId);
+
+    // Fallback: match by email (for profiles submitted as guests before login)
+    if (!profile && req.user!.email) {
+      profile = await MatrimonialService.getProfileByEmail(req.user!.email);
+    }
+
     if (!profile) {
       return ApiResponse.success(res, null, 'No matrimonial profile found', 200);
     }

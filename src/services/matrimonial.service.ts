@@ -230,6 +230,28 @@ export class MatrimonialService {
   }
 
   /**
+   * Get user's own profile by email (fallback for guest submissions)
+   */
+  public static async getProfileByEmail(email: string) {
+    if (!email) return null;
+
+    const profile = await prisma.matrimonialProfile.findFirst({
+      where: { email: email.toLowerCase() },
+      include: {
+        photos: true,
+        partnerPreference: true,
+        interviewRecords: {
+          include: {
+            matchmaker: true,
+          },
+        },
+      },
+    });
+
+    return profile;
+  }
+
+  /**
    * Create staff-only interview record
    */
   public static async createInterviewRecord(
