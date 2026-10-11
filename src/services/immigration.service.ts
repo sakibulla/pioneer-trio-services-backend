@@ -51,8 +51,6 @@ export class ImmigrationService {
     const randomSeq = Math.floor(1000 + Math.random() * 9000);
     const caseReference = `PTS-IMM-${caseRefYear}-${randomSeq}`;
 
-    const assignedCoordinatorId = await this.findLeastLoadedCoordinator();
-
     const createdCase = await prisma.$transaction(async (tx) => {
       // 1. Create or update Client
       const client = await tx.client.upsert({
@@ -88,7 +86,6 @@ export class ImmigrationService {
       const immigrationCase = await tx.immigrationCase.create({
         data: {
           clientId: client.id,
-          coordinatorId: assignedCoordinatorId,
           caseReference,
           destinationCountry: data.destinationCountry,
           applicationType: data.applicationType,
@@ -183,22 +180,6 @@ export class ImmigrationService {
         destination: data.destinationCountry,
       },
     });
-
-    if (assignedCoordinatorId) {
-      const coordinator = await prisma.user.findUnique({ where: { id: assignedCoordinatorId } });
-      if (coordinator) {
-        emailQueue.add({
-          type: 'COORDINATOR_NEW_CASE',
-          payload: {
-            to: coordinator.email,
-            coordinatorName: `${coordinator.firstName} ${coordinator.lastName}`,
-            clientName: data.fullName,
-            caseReference,
-            destination: data.destinationCountry,
-          },
-        });
-      }
-    }
 
     await AuditService.log({
       action: 'IMMIGRATION_ASSESSMENT_SUBMITTED',
