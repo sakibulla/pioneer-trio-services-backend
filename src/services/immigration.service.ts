@@ -1,5 +1,6 @@
 import { Prisma, CaseStatus, UserRole, NoteType, QCOutcome } from '@prisma/client';
 import { v4 as uuidv4 } from 'uuid';
+import bcryptjs from 'bcryptjs';
 import { prisma } from '../config/database';
 import { BadRequestError, ForbiddenError, NotFoundError } from '../utils/appError';
 import { emailQueue } from '../jobs/queue';
@@ -83,6 +84,35 @@ export class ImmigrationService {
           currentAddress: data.currentAddress,
         },
       });
+
+      // 1.5. Auto-create User account for client if doesn't exist
+      let user = await tx.user.findUnique({
+        where: { email: data.email.toLowerCase() },
+      });
+
+      if (!user) {
+        // Generate temporary password: first 6 chars of name + 4 random digits
+        const namePrefix = data.fullName?.substring(0, 6).toUpperCase() || "CLIENT";
+        const randomSuffix = Math.floor(1000 + Math.random() * 9000);
+        const tempPassword = `${namePrefix}${randomSuffix}`;
+        
+        // Hash the temporary password
+        const hashedPassword = await bcryptjs.hash(tempPassword, 12);
+        
+        user = await tx.user.create({
+          data: {
+            email: data.email.toLowerCase(),
+            passwordHash: hashedPassword,
+            firstName: data.fullName?.split(' ')[0] || 'Client',
+            lastName: data.fullName?.split(' ').slice(1).join(' ') || 'Account',
+            role: UserRole.CLIENT,
+            active: true,
+          },
+        });
+
+        // Log the temporary password for debugging (in production, send via email)
+        console.log(`[AUTO_USER_CREATED] ${data.email} - temp password: ${tempPassword}`);
+      }
 
       // 2. Create Immigration Case Record
       const immigrationCase = await tx.immigrationCase.create({
