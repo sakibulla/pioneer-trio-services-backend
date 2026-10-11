@@ -48,4 +48,26 @@ export class ContactController {
 
     ApiResponse.success(res, subscriber, 'Subscribed to Pioneer Trio newsletter successfully');
   });
+
+  public static getAllSubmissions = asyncHandler(async (req: Request, res: Response) => {
+    const page = Math.max(1, parseInt(req.query.page as string) || 1);
+    const limit = Math.min(50, Math.max(1, parseInt(req.query.limit as string) || 10));
+    const skip = (page - 1) * limit;
+
+    const [inquiries, total] = await Promise.all([
+      prisma.contactInquiry.findMany({
+        skip,
+        take: limit,
+        orderBy: { createdAt: 'desc' },
+      }),
+      prisma.contactInquiry.count(),
+    ]);
+
+    ApiResponse.success(res, inquiries, 'Contact submissions retrieved', 200, {
+      total,
+      page,
+      limit,
+      totalPages: Math.ceil(total / limit),
+    });
+  });
 }
