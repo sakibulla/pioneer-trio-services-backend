@@ -34,6 +34,22 @@ export class AuthController {
     ApiResponse.success(res, null, 'If that email exists in our records, a password reset link has been dispatched.');
   });
 
+  public static resetPassword = asyncHandler(async (req: Request, res: Response) => {
+    const { token, newPassword } = req.body;
+    await AuthService.resetPassword(token, newPassword);
+    ApiResponse.success(res, null, 'Password reset successful. You can now log in with your new password.');
+  });
+
+  public static validateResetToken = asyncHandler(async (req: Request, res: Response) => {
+    const token = req.query.token as string;
+    if (!token) {
+      res.status(400).json({ success: false, message: 'Token is required' });
+      return;
+    }
+    await AuthService.validateResetToken(token);
+    ApiResponse.success(res, null, 'Token is valid');
+  });
+
   public static getMe = asyncHandler(async (req: Request, res: Response) => {
     ApiResponse.success(res, req.user, 'Current user profile');
   });

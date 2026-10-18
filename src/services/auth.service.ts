@@ -202,25 +202,92 @@ export class AuthService {
   }
 
   /**
-   * Forgot password request
+   * Forgot password request — generates a secure token, stores it hashed in DB, emails a reset link
    */
   public static async forgotPassword(email: string) {
     const user = await prisma.user.findUnique({ where: { email: email.toLowerCase() } });
     if (!user) {
-      // Don't leak user existence
+      // Don't leak user existence — return silently
       return;
     }
 
-    const resetToken = crypto.randomBytes(32).toString('hex');
-    const resetTokenHash = crypto.createHash('sha256').update(resetToken).digest('hex');
+    // Invalidate any previous unused reset tokens for this user
+    await prisma.passwordResetToken.deleteMany({
+      where: { userId: user.id, usedAt: null },
+    });
 
-    // Store in audit or cache with 1-hour expiration
-    const resetUrl = `https://pioneertrioservices.com/reset-password?token=${resetTokenHash}&email=${encodeURIComponent(user.email)}`;
+    const rawToken = crypto.randomBytes(32).toString('hex');
+    const tokenHash = crypto.createHash('sha256').update(rawToken).digest('hex');
+    const expiresAt = new Date(Date.now() + 60 * 60 * 1000); // 1 hour from now
+
+    await prisma.passwordResetToken.create({
+      data: {
+        userId: user.id,
+        tokenHash,
+        expiresAt,
+      },
+    });
+
+    const resetUrl = `${env.FRONTEND_URL || 'https://pioneertrioservices.com'}/reset-password/${rawToken}?email=${encodeURIComponent(user.email)}`;
 
     emailQueue.add({
       type: 'PASSWORD_RESET',
       payload: { to: user.email, resetUrl },
     });
+  }
+
+  /**
+   * Reset password — validates token from DB, updates the user's password hash
+   */
+  public static async resetPassword(rawToken: string, newPassword: string) {
+    const tokenHash = crypto.createHash('sha256').update(rawToken).digest('hex');
+
+    const record = await prisma.passwordResetToken.findUnique({ where: { tokenHash } });
+
+    if (!record) {
+      throw new BadRequestError('Invalid or expired reset token.');
+    }
+    if (record.usedAt) {
+      throw new BadRequestError('This reset token has already been used.');
+    }
+    if (record.expiresAt < new Date()) {
+      throw new BadRequestError('This reset token has expired. Please request a new one.');
+    }
+
+    const salt = await bcrypt.genSalt(env.BCRYPT_SALT_ROUNDS);
+    const passwordHash = await bcrypt.hash(newPassword, salt);
+
+    await prisma.$transaction([
+      prisma.user.update({
+        where: { id: record.userId },
+        data: { passwordHash },
+      }),
+      prisma.passwordResetToken.update({
+        where: { id: record.id },
+        data: { usedAt: new Date() },
+      }),
+    ]);
+
+    // Queue confirmation email
+    const user = await prisma.user.findUnique({ where: { id: record.userId } });
+    if (user) {
+      emailQueue.add({
+        type: 'PASSWORD_RESET_CONFIRM',
+        payload: { to: user.email, name: `${user.firstName} ${user.lastName}` },
+      });
+    }
+  }
+
+  /**
+   * Validate a password reset token without consuming it (for UI pre-check)
+   */
+  public static async validateResetToken(rawToken: string) {
+    const tokenHash = crypto.createHash('sha256').update(rawToken).digest('hex');
+    const record = await prisma.passwordResetToken.findUnique({ where: { tokenHash } });
+
+    if (!record || record.usedAt || record.expiresAt < new Date()) {
+      throw new BadRequestError('Invalid or expired reset token.');
+    }
   }
 
   /**

@@ -6,6 +6,7 @@ import {
   loginSchema,
   refreshTokenSchema,
   forgotPasswordSchema,
+  resetPasswordSchema,
   googleTokenSchema,
 } from '../../../validators/auth.validator';
 import { verifyToken } from '../../../middleware/auth';
@@ -17,6 +18,8 @@ router.post('/login', validateRequest({ body: loginSchema }), AuthController.log
 router.post('/google', validateRequest({ body: googleTokenSchema }), AuthController.googleLogin);
 router.post('/refresh', validateRequest({ body: refreshTokenSchema }), AuthController.refreshToken);
 router.post('/forgot-password', validateRequest({ body: forgotPasswordSchema }), AuthController.forgotPassword);
+router.post('/reset-password', validateRequest({ body: resetPasswordSchema }), AuthController.resetPassword);
+router.get('/validate-reset-token', AuthController.validateResetToken);
 router.post('/logout', verifyToken, AuthController.logout);
 router.get('/me', verifyToken, AuthController.getMe);
 

@@ -64,6 +64,9 @@ const envSchema = z.object({
   RATE_LIMIT_GLOBAL_WINDOW_MS: z.coerce.number().default(60000),
   RATE_LIMIT_AUTH_MAX: z.coerce.number().default(5),
   RATE_LIMIT_AUTH_WINDOW_MS: z.coerce.number().default(900000),
+
+  // Frontend URL (used for generating password reset links in emails)
+  FRONTEND_URL: z.string().default('https://pioneertrioservices.com'),
 });
 
 const parsed = envSchema.safeParse(process.env);
