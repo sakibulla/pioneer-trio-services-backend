@@ -5,7 +5,9 @@ import { prisma } from '../config/database';
 import { generateAccessToken, generateRefreshToken, verifyRefreshToken, revokeRefreshToken } from '../utils/jwt';
 import { BadRequestError, ConflictError, NotFoundError, UnauthorizedError } from '../utils/appError';
 import { emailQueue } from '../jobs/queue';
+import { emailService } from './email.service';
 import { env } from '../config/env';
+import { logger } from '../config/logger';
 import { AuditService } from './audit.service';
 import { AuthUserPayload } from '../types';
 
@@ -230,10 +232,9 @@ export class AuthService {
 
     const resetUrl = `${env.FRONTEND_URL || 'https://pioneertrioservices.com'}/reset-password/${rawToken}?email=${encodeURIComponent(user.email)}`;
 
-    emailQueue.add({
-      type: 'PASSWORD_RESET',
-      payload: { to: user.email, resetUrl },
-    });
+    // Send directly via SMTP — bypasses the queue for immediate, reliable delivery
+    await emailService.sendPasswordResetEmail(user.email, resetUrl);
+    logger.info(`[Auth] Password reset email sent directly to ${user.email}`);
   }
 
   /**
