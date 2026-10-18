@@ -21,6 +21,15 @@ class EmailService {
         },
       });
       logger.info(`📧 Email transporter initialized via SMTP (${env.SMTP_HOST}:${env.SMTP_PORT})`);
+
+      // Verify SMTP connection on startup so misconfiguration is caught immediately
+      this.transporter.verify((error) => {
+        if (error) {
+          logger.error('❌ SMTP connection verification failed', { error: error.message });
+        } else {
+          logger.info('✅ SMTP connection verified — ready to send emails');
+        }
+      });
     } else {
       logger.warn('⚠️ SMTP credentials not configured. Email service will run in log-only mock mode.');
     }
@@ -69,18 +78,27 @@ class EmailService {
       return true;
     }
 
+    // Gmail only allows sending from the authenticated SMTP_USER address.
+    // Using a different domain (e.g. noreply@pioneertrioservices.com) causes
+    // Gmail to silently drop or reject the message. Always send as SMTP_USER.
+    const fromAddress = env.SMTP_USER
+      ? `Pioneer Trio Services <${env.SMTP_USER}>`
+      : env.EMAIL_FROM;
+
     try {
-      await this.transporter.sendMail({
-        from: env.EMAIL_FROM,
+      const info = await this.transporter.sendMail({
+        from: fromAddress,
         to,
         subject,
         html: fullHtml,
       });
-      logger.info(`Email sent successfully to ${to} [${subject}]`);
+      logger.info(`Email sent successfully to ${to} [${subject}] — MessageId: ${info.messageId}`);
       return true;
     } catch (err: any) {
-      logger.error(`Failed to send email to ${to}`, { error: err.message });
-      return false;
+      logger.error(`Failed to send email to ${to}`, { error: err.message, subject });
+      // Re-throw so callers (e.g. forgot-password) get a real error
+      // instead of silently returning 200 when email delivery fails
+      throw new Error(`Email delivery failed: ${err.message}`);
     }
   }
 
