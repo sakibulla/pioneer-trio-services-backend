@@ -1,15 +1,25 @@
 import nodemailer from 'nodemailer';
+import { Resend } from 'resend';
 import { env } from '../config/env';
 import { logger } from '../config/logger';
 
 class EmailService {
   private transporter: nodemailer.Transporter | null = null;
+  private resend: Resend | null = null;
 
   constructor() {
     this.initTransporter();
   }
 
   private initTransporter() {
+    // --- Priority 1: Resend API (works on Render — HTTP-based, no SMTP port needed) ---
+    if (env.RESEND_API_KEY) {
+      this.resend = new Resend(env.RESEND_API_KEY);
+      logger.info('📧 Email service initialized via Resend API');
+      return;
+    }
+
+    // --- Priority 2: SMTP (for local development only — Render blocks SMTP ports) ---
     if (env.SMTP_USER && env.SMTP_PASS) {
       this.transporter = nodemailer.createTransport({
         host: env.SMTP_HOST,
@@ -30,9 +40,10 @@ class EmailService {
           logger.info('✅ SMTP connection verified — ready to send emails');
         }
       });
-    } else {
-      logger.warn('⚠️ SMTP credentials not configured. Email service will run in log-only mock mode.');
+      return;
     }
+
+    logger.warn('⚠️ No email provider configured (RESEND_API_KEY or SMTP_USER+SMTP_PASS). Running in log-only mock mode.');
   }
 
   private getBaseLayout(content: string): string {
@@ -73,11 +84,37 @@ class EmailService {
   public async sendMail(to: string, subject: string, htmlContent: string): Promise<boolean> {
     const fullHtml = this.getBaseLayout(htmlContent);
 
-    if (!this.transporter) {
+    // --- Mock mode (no provider configured) ---
+    if (!this.resend && !this.transporter) {
       logger.info(`[Mock Email] To: ${to} | Subject: "${subject}"`);
       return true;
     }
 
+    // --- Resend API (production / Render) ---
+    if (this.resend) {
+      try {
+        const fromAddress = env.RESEND_FROM_ADDRESS || 'Pioneer Trio Services <onboarding@resend.dev>';
+        const { data, error } = await this.resend.emails.send({
+          from: fromAddress,
+          to,
+          subject,
+          html: fullHtml,
+        });
+
+        if (error) {
+          logger.error(`Failed to send email via Resend to ${to}`, { error: error.message, subject });
+          throw new Error(`Resend email delivery failed: ${error.message}`);
+        }
+
+        logger.info(`Email sent via Resend to ${to} [${subject}] — id: ${data?.id}`);
+        return true;
+      } catch (err: any) {
+        logger.error(`Failed to send email via Resend to ${to}`, { error: err.message, subject });
+        throw new Error(`Email delivery failed: ${err.message}`);
+      }
+    }
+
+    // --- SMTP (local development) ---
     // Gmail only allows sending from the authenticated SMTP_USER address.
     // Using a different domain (e.g. noreply@pioneertrioservices.com) causes
     // Gmail to silently drop or reject the message. Always send as SMTP_USER.
@@ -86,18 +123,17 @@ class EmailService {
       : env.EMAIL_FROM;
 
     try {
-      const info = await this.transporter.sendMail({
+      const info = await this.transporter!.sendMail({
         from: fromAddress,
         to,
         subject,
         html: fullHtml,
       });
-      logger.info(`Email sent successfully to ${to} [${subject}] — MessageId: ${info.messageId}`);
+      logger.info(`Email sent via SMTP to ${to} [${subject}] — MessageId: ${info.messageId}`);
       return true;
     } catch (err: any) {
-      logger.error(`Failed to send email to ${to}`, { error: err.message, subject });
-      // Re-throw so callers (e.g. forgot-password) get a real error
-      // instead of silently returning 200 when email delivery fails
+      logger.error(`Failed to send email via SMTP to ${to}`, { error: err.message, subject });
+      // Re-throw so callers get a real error instead of a silent false return
       throw new Error(`Email delivery failed: ${err.message}`);
     }
   }

@@ -40,7 +40,10 @@ const envSchema = z.object({
   S3_BUCKET_PHOTOS: z.string().default('pioneer-photos'),
   S3_FORCE_PATH_STYLE: z.preprocess((val) => val === 'true' || val === true, z.boolean()).default(true),
 
-  // Email
+  // Email — Resend API (production/Render) takes priority over SMTP (local dev)
+  // Render blocks all outbound SMTP ports; use Resend for production
+  RESEND_API_KEY: z.string().optional(),
+  RESEND_FROM_ADDRESS: z.string().optional(),
   SMTP_HOST: z.string().default('smtp.gmail.com'),
   SMTP_PORT: z.coerce.number().default(587),
   SMTP_SECURE: z.preprocess((val) => val === 'true' || val === true, z.boolean()).default(false),
