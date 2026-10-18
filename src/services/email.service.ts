@@ -15,7 +15,7 @@ class EmailService {
     // --- Priority 1: Resend API (works on Render — HTTP-based, no SMTP port needed) ---
     if (env.RESEND_API_KEY) {
       this.resend = new Resend(env.RESEND_API_KEY);
-      logger.info('📧 Email service initialized via Resend API');
+      logger.info('📧 [EmailService] Provider: RESEND API');
       return;
     }
 
@@ -30,20 +30,20 @@ class EmailService {
           pass: env.SMTP_PASS,
         },
       });
-      logger.info(`📧 Email transporter initialized via SMTP (${env.SMTP_HOST}:${env.SMTP_PORT})`);
+      logger.info(`📧 [EmailService] Provider: SMTP (${env.SMTP_HOST}:${env.SMTP_PORT}) — user: ${env.SMTP_USER}`);
 
       // Verify SMTP connection on startup so misconfiguration is caught immediately
       this.transporter.verify((error) => {
         if (error) {
-          logger.error('❌ SMTP connection verification failed', { error: error.message });
+          logger.error('❌ [EmailService] SMTP connection verification FAILED', { error: error.message });
         } else {
-          logger.info('✅ SMTP connection verified — ready to send emails');
+          logger.info('✅ [EmailService] SMTP connection verified — ready to send emails');
         }
       });
       return;
     }
 
-    logger.warn('⚠️ No email provider configured (RESEND_API_KEY or SMTP_USER+SMTP_PASS). Running in log-only mock mode.');
+    logger.warn('⚠️ [EmailService] Provider: MOCK (no RESEND_API_KEY or SMTP_USER+SMTP_PASS set — emails will NOT send)');
   }
 
   private getBaseLayout(content: string): string {
@@ -84,9 +84,13 @@ class EmailService {
   public async sendMail(to: string, subject: string, htmlContent: string): Promise<boolean> {
     const fullHtml = this.getBaseLayout(htmlContent);
 
+    // Debug: log active transport on every send attempt
+    const activeProvider = this.resend ? 'RESEND' : this.transporter ? 'SMTP' : 'MOCK';
+    logger.info(`📤 [EmailService] sendMail → provider=${activeProvider} to=${to} subject="${subject}"`);
+
     // --- Mock mode (no provider configured) ---
     if (!this.resend && !this.transporter) {
-      logger.info(`[Mock Email] To: ${to} | Subject: "${subject}"`);
+      logger.warn(`⚠️ [EmailService] MOCK mode — email NOT sent to ${to}`);
       return true;
     }
 
