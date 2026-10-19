@@ -43,6 +43,10 @@ export const initEmailWorker = (): void => {
         await emailService.sendPasswordResetEmail(payload.to, payload.resetUrl);
         break;
 
+      case 'PASSWORD_RESET_CONFIRM':
+        await emailService.sendPasswordResetConfirmEmail(payload.to, payload.name);
+        break;
+
       case 'GENERIC_EMAIL':
         await emailService.sendMail(payload.to, payload.subject, payload.content);
         break;
