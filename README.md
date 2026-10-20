@@ -2,7 +2,7 @@
 
 A production-grade, scalable REST API backend for **Pioneer Trio Services** (Immigration Consultancy & Marriage Consultancy). Built with Node.js 20 LTS, TypeScript, Express, Prisma ORM, PostgreSQL, Redis, and AWS S3.
 
-**🔗 [Live API](https://pioneer-backend-5qhe.onrender.com)** | **📖 [Swagger Docs](https://pioneer-backend-5qhe.onrender.com/api/v1/docs)** | **💻 [Frontend](https://pioneer-frontend-kgrz.onrender.com)** | **🏥 [Health Check](https://pioneer-backend-5qhe.onrender.com/api/v1/health)**
+**💻 [Frontend](https://www.pioneertrioservices.com)** | **📖 [Documentation](#api-endpoints-overview)**
 
 ---
 
@@ -559,12 +559,9 @@ Transactional emails sent via Bull queues:
 
 | Resource | URL |
 |----------|-----|
-| **Live API** | https://pioneer-backend-5qhe.onrender.com |
-| **Swagger Docs** | https://pioneer-backend-5qhe.onrender.com/api/v1/docs |
-| **Health Check** | https://pioneer-backend-5qhe.onrender.com/api/v1/health |
-| **Queue Dashboard** | https://pioneer-backend-5qhe.onrender.com/admin/queues |
 | **Render Dashboard** | https://dashboard.render.com |
-| **Frontend** | https://pioneer-frontend-kgrz.onrender.com |
+| **Frontend** | https://www.pioneertrioservices.com |
+| **Documentation** | See API Endpoints & Configuration sections |
 
 ---
 
