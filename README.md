@@ -636,5 +636,3 @@ ISC
 **Last Updated**: October 2026  
 **Status**: 🟢 Production Live  
 **Version**: 1.0.0  
-**Live URL**: https://pioneer-backend-5qhe.onrender.com
-
